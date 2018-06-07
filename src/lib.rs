@@ -155,7 +155,8 @@ pub fn run(config: &Config) -> Result<(), failure::Error> {
                     Some("HEAD"),
                     &signature,
                     &signature,
-                    &format!("fixup! {}", dest_commit.id()),
+                    &format!("fixup! {} {}", dest_commit.id(),
+                        dest_commit.summary().unwrap_or("<no message>")),
                     &head_tree,
                     &[&head_commit],
                 )?)?;
