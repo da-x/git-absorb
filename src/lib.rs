@@ -37,8 +37,12 @@ pub fn run(config: &Config) -> Result<(), failure::Error> {
         ret
     });
 
+    let wso = WorkingStackOptions {
+        ignore_foreign : config.force,
+    };
+
     let stack: Vec<_> = {
-        let stack = stack::working_stack(&repo, base.as_ref(), config.logger)?;
+        let stack = stack::working_stack(&wso, &repo, base.as_ref(), config.logger)?;
         let mut diffs = Vec::with_capacity(stack.len());
         for commit in &stack {
             let diff = owned::Diff::new(&repo.diff_tree_to_tree(

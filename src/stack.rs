@@ -14,7 +14,12 @@ fn max_stack(repo: &git2::Repository) -> usize {
     }
 }
 
+pub struct WorkingStackOptions {
+    pub ignore_foreign: bool,
+}
+
 pub fn working_stack<'repo>(
+    opts: &WorkingStackOptions,
     repo: &'repo git2::Repository,
     base: Option<&git2::Commit<'repo>>,
     logger: &slog::Logger,
@@ -63,7 +68,9 @@ pub fn working_stack<'repo>(
             || commit.author().email_bytes() != sig.email_bytes()
         {
             warn!(logger, "foreign author found"; "commit" => commit.id().to_string());
-            break;
+            if !opts.ignore_foreign {
+                break;
+            }
         }
         if ret.len() == max_stack(repo) {
             warn!(logger, "stack limit reached"; "limit" => ret.len());
@@ -80,6 +87,10 @@ mod tests {
     extern crate tempdir;
 
     use super::*;
+
+    const DEF_OPTS : WorkingStackOptions = WorkingStackOptions {
+        ignore_foreign: false,
+    };
 
     fn empty_slog() -> slog::Logger {
         slog::Logger::root(slog::Discard, o!())
@@ -151,7 +162,7 @@ mod tests {
 
         assert_stack_matches_chain(
             1,
-            &working_stack(&repo, None, &empty_slog()).unwrap(),
+            &working_stack(&DEF_OPTS, &repo, None, &empty_slog()).unwrap(),
             &commits,
         );
     }
@@ -164,7 +175,7 @@ mod tests {
 
         assert_stack_matches_chain(
             2,
-            &working_stack(&repo, Some(&commits[0]), &empty_slog()).unwrap(),
+            &working_stack(&DEF_OPTS, &repo, Some(&commits[0]), &empty_slog()).unwrap(),
             &commits,
         );
     }
@@ -176,7 +187,7 @@ mod tests {
 
         assert_stack_matches_chain(
             MAX_STACK,
-            &working_stack(&repo, None, &empty_slog()).unwrap(),
+            &working_stack(&DEF_OPTS, &repo, None, &empty_slog()).unwrap(),
             &commits,
         );
     }
@@ -192,7 +203,7 @@ mod tests {
 
         assert_stack_matches_chain(
             MAX_STACK + 1,
-            &working_stack(&repo, None, &empty_slog()).unwrap(),
+            &working_stack(&DEF_OPTS, &repo, None, &empty_slog()).unwrap(),
             &commits,
         );
     }
@@ -209,7 +220,7 @@ mod tests {
 
         assert_stack_matches_chain(
             2,
-            &working_stack(&repo, None, &empty_slog()).unwrap(),
+            &working_stack(&DEF_OPTS, &repo, None, &empty_slog()).unwrap(),
             &new_commits,
         );
     }
@@ -227,7 +238,7 @@ mod tests {
 
         assert_stack_matches_chain(
             2,
-            &working_stack(&repo, None, &empty_slog()).unwrap(),
+            &working_stack(&DEF_OPTS, &repo, None, &empty_slog()).unwrap(),
             &commits,
         );
     }
